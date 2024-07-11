@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import {useMutation} from "@tanstack/vue-query";
 import type {EnumStatus} from "~/types/deals.types";
 import {COLLECTION_DEALS, DB_ID} from "~/app.constants";
+import {generateColumnStyle} from "~/components/kanban/generate-gradient";
 
 useSeoMeta({
   title: 'Home | CRM System',
@@ -23,8 +24,8 @@ type TypeMutationVariables = {
 const { mutate } = useMutation({
   mutationKey: ['move card'],
   mutationFn: ({docId, status}: TypeMutationVariables) =>
-    DB.updateDocument(DB_ID, COLLECTION_DEALS, docId, {
-      status,
+      DB.updateDocument(DB_ID, COLLECTION_DEALS, docId, {
+        status,
     }),
   onSuccess: () => {
     refetch()
@@ -34,6 +35,18 @@ const { mutate } = useMutation({
 function handleDragStart(card: ICard, column: IColumn) {
   dragCardRef.value = card;
   sourceColumnRef.value = column;
+
+  console.log(dragCardRef.value, sourceColumnRef.value)
+}
+
+function handleDragOver(event: DragEvent) {
+  event.preventDefault();
+}
+
+function handleDrop(targetColumn: IColumn) {
+  if (dragCardRef.value && sourceColumnRef.value) {
+    mutate({docId: dragCardRef.value.id, status: targetColumn.id})
+  }
 }
 
 </script>
@@ -44,14 +57,21 @@ function handleDragStart(card: ICard, column: IColumn) {
     <div v-if="isLoading">Loading...</div>
     <div v-else>
       <div class="grid grid-cols-5 gap-16">
-        <div v-for="(column, index) in data" :key=column.id>
-          <div class="rounded bg-slate-700 py-1 px-5 mb-2 text-center">
+        <div v-for="(column, index) in data"
+             :key=column.id
+             @dragover="handleDragOver"
+             @drop="() => handleDrop(column)"
+             class="min-h-screen">
+          <div class="rounded bg-slate-700 py-1 px-5 mb-2 text-center text-xs"
+               :style="generateColumnStyle(+index, data?.length)">
             {{ column.name }}
           </div>
           <div>
             <KanbanCreateDeal :refetch="refetch" :status="column.id" />
             <UiCard v-for="card in column.items" :key="card.id"
-                    class="mb-5" draggable="true">
+                    class="mb-5"
+                    draggable="true"
+                    @dragstart="() => handleDragStart(card, column)">
               <UiCardHeader role="button">
                 <UiCardTitle>{{ card.name }}</UiCardTitle>
                 <UiCardDescription class="mt-2 block">{{ convertCurrency(card.price) }}</UiCardDescription>

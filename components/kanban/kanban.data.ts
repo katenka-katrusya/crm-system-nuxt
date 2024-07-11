@@ -1,7 +1,7 @@
 import type { IColumn } from "~/components/kanban/kanban.types";
 import { EnumStatus } from "~/types/deals.types";
 
-export const KANBAN_DATA:IColumn[] = [
+export const KANBAN_DATA: IColumn[] = [
   {
     id: EnumStatus.todo,
     name: 'Входящие',
