@@ -1,12 +1,13 @@
 <script setup lang="ts">
+import dayjs from "dayjs";
 import type {ICard, IColumn} from "~/components/kanban/kanban.types";
 import {useKanbanQuery} from "~/components/kanban/useKanbanQuery";
 import {convertCurrency} from "~/utils/convertCurrency";
-import dayjs from "dayjs";
 import {useMutation} from "@tanstack/vue-query";
 import type {EnumStatus} from "~/types/deals.types";
-import {COLLECTION_DEALS, DB_ID} from "~/app.constants";
 import {generateColumnStyle} from "~/components/kanban/generate-gradient";
+import {useDealSlideStore} from "~/store/deal-slide.store";
+import {COLLECTION_DEALS, DB_ID} from "~/app.constants";
 
 useSeoMeta({
   title: 'Home | CRM System',
@@ -15,18 +16,19 @@ useSeoMeta({
 const dragCardRef = ref<ICard | null>(null);
 const sourceColumnRef = ref<IColumn | null>(null);
 const {data, isLoading, refetch} = useKanbanQuery();
+const store = useDealSlideStore();
 
 type TypeMutationVariables = {
   docId: string,
   status?: EnumStatus
 }
 
-const { mutate } = useMutation({
+const {mutate} = useMutation({
   mutationKey: ['move card'],
   mutationFn: ({docId, status}: TypeMutationVariables) =>
       DB.updateDocument(DB_ID, COLLECTION_DEALS, docId, {
         status,
-    }),
+      }),
   onSuccess: () => {
     refetch()
   }
@@ -35,8 +37,6 @@ const { mutate } = useMutation({
 function handleDragStart(card: ICard, column: IColumn) {
   dragCardRef.value = card;
   sourceColumnRef.value = column;
-
-  console.log(dragCardRef.value, sourceColumnRef.value)
 }
 
 function handleDragOver(event: DragEvent) {
@@ -67,12 +67,12 @@ function handleDrop(targetColumn: IColumn) {
             {{ column.name }}
           </div>
           <div>
-            <KanbanCreateDeal :refetch="refetch" :status="column.id" />
+            <KanbanCreateDeal :refetch="refetch" :status="column.id"/>
             <UiCard v-for="card in column.items" :key="card.id"
                     class="mb-5"
                     draggable="true"
                     @dragstart="() => handleDragStart(card, column)">
-              <UiCardHeader role="button">
+              <UiCardHeader role="button" @click="store.set(card)">
                 <UiCardTitle>{{ card.name }}</UiCardTitle>
                 <UiCardDescription class="mt-2 block">{{ convertCurrency(card.price) }}</UiCardDescription>
               </UiCardHeader>
@@ -85,9 +85,7 @@ function handleDrop(targetColumn: IColumn) {
           </div>
         </div>
       </div>
+      <KanbanSlideover />
     </div>
   </div>
 </template>
-
-<style scoped>
-</style>
